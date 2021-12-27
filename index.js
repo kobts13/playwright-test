@@ -19,15 +19,10 @@ const nfrs = {
 
 (async () => {
   const browser = await chromium.launch({
-    headless: false,
-    logger: {
-      isEnabled: (name, severity) => name === "browser",
-      log: (name, severity, message, args) => console.log(`${name} ${message}`),
-    },
+    headless: true,
   });
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,
-    // recordVideo: { dir: "videos/" },
   });
   try {
     await context.tracing.start({ screenshots: true, snapshots: true });
@@ -36,7 +31,6 @@ const nfrs = {
     let nfrName = "NFR-ECOM-RT-UI-101";
     let loadingStarted = Date.now();
     await page.goto(`${baseUrl}/product-lines/internet`, { timeout: 60000 });
-    await page.locator(".related-offerings-and-lines-section__row").waitFor();
     let loadingEnded = Date.now();
     console.log(
       nfrName,
@@ -70,18 +64,13 @@ const nfrs = {
     }
 
     nfrName = "NFR-ECOM-RT-UI-103";
-    // loadingStarted = Date.now();
-    // await page
-    //   .locator(".product-line-list-container")
-    //   .locator('"Интернет Базовый"')
-    //   .click();
     const internetBaseLocator = page
       .locator(".product-line-list-container")
       .locator('"Интернет Базовый"');
     await internetBaseLocator.waitFor();
     loadingStarted = Date.now();
     await internetBaseLocator.click();
-    await page.locator(".main-summary-product").waitFor();
+    await page.waitForSelector(".main-summary-product");
     loadingEnded = Date.now();
     console.log(
       nfrName,
@@ -91,14 +80,12 @@ const nfrs = {
     );
 
     nfrName = "NFR-ECOM-RT-UI-106";
-    await page
-      .locator(
-        ".summary-block-product-info " +
-          ".product-configuration__description-price-total " +
-          ".taParam " +
-          ".price"
-      )
-      .waitFor();
+    await page.waitForSelector(
+      ".summary-block-product-info " +
+        ".product-configuration__description-price-total " +
+        ".taParam " +
+        ".price"
+    );
     loadingEnded = Date.now();
     console.log(
       nfrName,
@@ -137,7 +124,7 @@ const nfrs = {
     await addToCartLocator.waitFor();
     loadingStarted = Date.now();
     await addToCartLocator.click();
-    await page.locator('"Перейти в корзину"').waitFor();
+    await page.waitForSelector('"Перейти в корзину"');
     loadingEnded = Date.now();
     console.log(
       nfrName,
@@ -148,12 +135,11 @@ const nfrs = {
 
     await page.click('"Войти"');
 
-    await page.waitForTimeout(1000);
-    const ecomLoginIFrame = await page.frameLocator("#ecomLoginIFrame");
-    await ecomLoginIFrame.locator("#username").fill(username);
-    await ecomLoginIFrame.locator("#password").fill(password);
-    await ecomLoginIFrame.locator('"Sign In"').click();
-    await ecomLoginIFrame.locator(".kc-feedback-text").waitFor();
+    const ecomLoginIFrame = await page.frame({ url: /\/auth\// });
+    await ecomLoginIFrame.fill("#username", username);
+    await ecomLoginIFrame.fill("#password", password);
+    await ecomLoginIFrame.click('"Sign In"');
+    await ecomLoginIFrame.waitForSelector(".kc-feedback-text");
 
     await page.waitForTimeout(1000);
   } catch (e) {
